@@ -3,7 +3,7 @@ import jwt from "jsonwebtoken";
 import bcrypt from "bcrypt";
 import { secret } from "../config";
 import {z} from 'zod';
-import { userModel } from "../db";
+import { userModel } from "../models/userModel";
 
 const router = Router();
 const cookieOptions = {
