@@ -26,14 +26,15 @@
     "zod": "^4.0.17"
   },
   "devDependencies": {
-    "@types/bcrypt": "^6.0.0",
-    "@types/cookie-parser": "^1.4.9",
-    "@types/cors": "^2.8.19",
-    "@types/jsonwebtoken": "^9.0.10",
-    "@types/mongoose": "^5.11.96",
-    "@types/nodemailer": "^7.0.0",
-    "@types/otp-generator": "^4.0.2",
-    "dotenv-cli": "^10.0.0",
-    "typescript": "^5.9.2"
+  "@types/bcrypt": "^6.0.0",
+  "@types/cookie-parser": "^1.4.9",
+  "@types/cors": "^2.8.19",
+  "@types/jsonwebtoken": "^9.0.10",
+  "@types/mongoose": "^5.11.96",
+  "@types/nodemailer": "^7.0.0",
+  "@types/otp-generator": "^4.0.2",
+  "dotenv-cli": "^10.0.0",
+  "typescript": "^5.9.2"
+
   }
 }
