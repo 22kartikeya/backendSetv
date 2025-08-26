@@ -92,10 +92,13 @@ router.post('/reset-password', async (req, res) => {
         const { email } = req.body;
         if(!email) return res.status(400).json({message: "Email Required"});
         const user = await userModel.findOne({email});
-        if (!user) return res.status(200).json({ message: "If your email exists, a reset link has been sent." });
+        if (!user) return res.status(404).json({ message: "Email does not exist" });
         const resetToken = jwt.sign(
-            { email: user.email, id: user._id }, secret, { expiresIn: '1h' }                   
+            { email: user.email, id: user._id }, secret, { expiresIn: '10min' }                   
         );
+        user.resetToken = resetToken;
+        user.resetTokenExpires = new Date(Date.now() + 10*60*1000);
+        await user.save();
         await sendResetEmail(user.email, resetToken);
         return res.status(200).json({ message: "Reset link has been sent." });
     }catch(e){
@@ -116,8 +119,13 @@ router.post('/reset-password/confirm', async(req, res) => {
         }
         const user = await userModel.findById(decoded.id);
         if(!user) return res.status(404).json({message: "User not found"});
+        if (user.resetToken !== token || !user.resetTokenExpires || user.resetTokenExpires < new Date()) {
+            return res.status(400).json({ message: "Invalid or expired token" });
+        }
         const hashPass = await bcrypt.hash(password, 12);
         user.password = hashPass;
+        user.resetToken = undefined;
+        user.resetTokenExpires = undefined;
         await user.save();
         return res.status(200).json({message: "Password has been reset successfully"});
     }catch(e){
