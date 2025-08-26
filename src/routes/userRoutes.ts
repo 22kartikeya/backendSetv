@@ -5,6 +5,7 @@ import { secret } from "../config";
 import {z} from 'zod';
 import { userModel } from "../models/userModel";
 import { JwtPayload, User } from "../types";
+import { sendResetEmail } from "../utils/email";
 
 const router = Router();
 const cookieOptions = {
@@ -83,6 +84,45 @@ router.get('/me', async (req, res) => {
     }catch(e){
         console.error("Login Error: ", e);
         return res.status(500).json({message: "Internal Server Error"});
+    }
+})
+
+router.post('/reset-password', async (req, res) => {
+    try{
+        const { email } = req.body;
+        if(!email) return res.status(400).json({message: "Email Required"});
+        const user = await userModel.findOne({email});
+        if (!user) return res.status(200).json({ message: "If your email exists, a reset link has been sent." });
+        const resetToken = jwt.sign(
+            { email: user.email, id: user._id }, secret, { expiresIn: '1h' }                   
+        );
+        await sendResetEmail(user.email, resetToken);
+        return res.status(200).json({ message: "Reset link has been sent." });
+    }catch(e){
+        console.error("Rest password Error: ", e);
+        return res.status(500).json({message: "Internal Server Error"});
+    }
+});
+
+router.post('/reset-password/confirm', async(req, res) => {
+    try{
+        const {token, password} = req.body;
+        if(!token || !password) return res.status(400).json({message: "Token and new password are required"});
+        let decoded: any;
+        try {
+            decoded = jwt.verify(token, secret);
+        } catch (err) {
+            return res.status(400).json({ message: "Invalid or expired token" });
+        }
+        const user = await userModel.findById(decoded.id);
+        if(!user) return res.status(404).json({message: "User not found"});
+        const hashPass = await bcrypt.hash(password, 12);
+        user.password = hashPass;
+        await user.save();
+        return res.status(200).json({message: "Password has been reset successfully"});
+    }catch(e){
+        console.error("Reset Password error: ", e);
+        return res.status(500).json({message: "Internal Server Error"})
     }
 })
 
