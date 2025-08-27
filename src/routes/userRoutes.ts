@@ -6,6 +6,8 @@ import {z} from 'zod';
 import { userModel } from "../models/userModel";
 import { JwtPayload, User } from "../types";
 import { sendResetEmail } from "../utils/email";
+import { otpModel } from "../models/otpModel";
+import { sendOtpEmail } from "../utils/otp";
 
 const router = Router();
 const cookieOptions = {
@@ -34,19 +36,43 @@ router.post('/signup', async (req, res) => {
         const existingUser = await userModel.findOne({email});
         if(existingUser) return res.status(403).json({message: "email already exist"});
         const hashPass = await bcrypt.hash(password, 12);
-        await userModel.create({
-            name, email, password: hashPass
-        });
-        const token = jwt.sign({
-            email
-        }, secret, {expiresIn: '7h'});
-        res.cookie("token", token, cookieOptions);
-        return res.status(201).json({message: "Signup Successfull", token })
+
+        const otp = Math.floor(1000 + Math.random() * 9000).toString();
+        await otpModel.findOneAndUpdate({email},
+            {name, email, password: hashPass, otp, expiresAt: new Date()}, { upsert: true }
+        );
+        await sendOtpEmail(email, otp);
+        return res.status(201).json({message: "OTP sent to your email"})
     }catch(e){
         console.error("Signup Error: ", e);
         return res.status(500).json({message: "Internal Server Error"});
     }
-})
+});
+
+router.post("/signup/verify-otp", async (req, res) => {
+    try {
+        const { email, otp } = req.body;
+        console.log("Incoming verify-otp request:", { email, otp });
+        if (!email || !otp) return res.status(400).json({ message: "Email and OTP required" });
+
+        const otpEntry = await otpModel.findOne({ email });
+        if (!otpEntry) return res.status(400).json({ message: "No OTP request found" });
+        if (Date.now() - otpEntry.createdAt.getTime() > 3 * 60 * 1000) return res.status(400).json({ message: "OTP expired" });
+        if (otpEntry.otp !== otp) return res.status(400).json({ message: "Invalid OTP" });
+
+        await userModel.create({ name: otpEntry.name, email, password: otpEntry.password});
+
+        // delete OTP entry
+        await otpModel.deleteOne({ email });
+        const token = jwt.sign({ email }, secret, { expiresIn: "7h" });
+
+        res.cookie("token", token, cookieOptions);
+        return res.status(201).json({ message: "Signup successful", token });
+    } catch (e) {
+        console.error("OTP Verification Error:", e);
+        return res.status(500).json({ message: "Internal Server Error" });
+    }
+});
 
 router.post('/login', async (req, res) => {
     const parsedData = loginSchema.safeParse(req.body);

@@ -4,7 +4,6 @@ import cookieParser from 'cookie-parser';
 import { frontend_url, mongo_url } from './config';
 import mongoose from 'mongoose';
 import { userRouter } from './routes/userRoutes';
-import { otpRouter } from './routes/otpRoutes';
 
 const app = express();
 
@@ -17,7 +16,6 @@ app.use(cors({
 app.use(cookieParser());
 
 app.use('/api/v1', userRouter);
-app.use('/api/v1/otp', otpRouter);
 
 const startServer = async () => {
     try{
