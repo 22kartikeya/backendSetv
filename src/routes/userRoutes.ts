@@ -49,10 +49,27 @@ router.post('/signup', async (req, res) => {
     }
 });
 
+router.post("/signup/resend-otp", async (req, res) => {
+    try {
+        const { email } = req.body;
+        if (!email) return res.status(400).json({ message: "Email required" });
+        const otpEntry = await otpModel.findOne({ email });
+        if (!otpEntry) return res.status(400).json({ message: "No signup request found for this email" });
+        const otp = Math.floor(1000 + Math.random() * 9000).toString();
+        await otpModel.findOne({email});
+        if(!email) return res.status(404).json({message: "Signup Again!"});
+        await otpModel.updateOne({email}, {otp, createdAt: new Date()});
+        await sendOtpEmail(email, otp);
+        return res.status(200).json({ message: "New OTP has been sent to your email" });
+    } catch (e) {
+        console.error("Resend OTP Error:", e);
+        return res.status(500).json({ message: "Internal Server Error" });
+    }
+});
+
 router.post("/signup/verify-otp", async (req, res) => {
     try {
         const { email, otp } = req.body;
-        console.log("Incoming verify-otp request:", { email, otp });
         if (!email || !otp) return res.status(400).json({ message: "Email and OTP required" });
 
         const otpEntry = await otpModel.findOne({ email });
@@ -62,7 +79,6 @@ router.post("/signup/verify-otp", async (req, res) => {
 
         await userModel.create({ name: otpEntry.name, email, password: otpEntry.password});
 
-        // delete OTP entry
         await otpModel.deleteOne({ email });
         const token = jwt.sign({ email }, secret, { expiresIn: "7h" });
 

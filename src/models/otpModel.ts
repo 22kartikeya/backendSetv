@@ -5,7 +5,7 @@ const otpSchema = new mongoose.Schema({
   email: { type: String, required: true },
   password: { type: String, required: true },
   otp: { type: String, required: true },
-  createdAt: { type: Date, default: Date.now, expires: 180 } // Mongo auto-deletes after 180s
+  createdAt: { type: Date, default: Date.now, expires: 180 }
 });
 
 export const otpModel = mongoose.model('Otp', otpSchema);

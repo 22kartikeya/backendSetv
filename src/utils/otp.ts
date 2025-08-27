@@ -9,7 +9,7 @@ export const sendOtpEmail = async (email: string, otp: string): Promise<void> =>
         }
     });
     
-    const info = await transporter.sendMail({
+    await transporter.sendMail({
         from: `${MAIL_SENDER} <${MAIL}>`,
         to: email,
         subject: "Your verification OTP",
@@ -22,5 +22,4 @@ export const sendOtpEmail = async (email: string, otp: string): Promise<void> =>
             <p>— Gene-o-mere Team</p>
         </div>`
     })
-    console.log("Message Sent:", info.messageId);
 }
